@@ -7,7 +7,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { hasSupabaseConfig } from "@/lib/config";
+import { hasSupabaseConfig, usernameToEmail } from "@/lib/config";
 import type { Profile, Role } from "@/lib/database.types";
 
 interface AuthState {
@@ -16,7 +16,8 @@ interface AuthState {
   loading: boolean;
   profileLoading: boolean;
   configured: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  /** Accepts a username (mapped to a hidden internal email) or a raw email. */
+  signIn: (usernameOrEmail: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -87,9 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     profileLoading,
     configured: hasSupabaseConfig,
-    async signIn(email, password) {
+    async signIn(usernameOrEmail, password) {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: usernameToEmail(usernameOrEmail),
         password,
       });
       return { error: error?.message };
@@ -121,8 +122,7 @@ export function useRole() {
   return {
     role,
     isOwner: role === "owner",
-    isCounter: role === "counter",
-    isTailor: role === "tailor",
+    isStaff: role === "staff",
     can: (roles: Role[]) => !!role && roles.includes(role),
   };
 }

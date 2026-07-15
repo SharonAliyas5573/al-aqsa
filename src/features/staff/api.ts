@@ -16,20 +16,22 @@ export function useStaff() {
   });
 }
 
-/** Active tailors, for the order assignment dropdown. */
+/** Active staff, for the order assignment dropdown (was "tailors"). */
 export function useTailors() {
   const q = useStaff();
   return {
     ...q,
-    data: (q.data ?? []).filter((p) => p.role === "tailor" && p.active),
+    data: (q.data ?? []).filter((p) => p.role === "staff" && p.active),
   };
 }
 
 export interface CreateStaffInput {
-  email: string;
+  username: string;
   password: string;
   full_name: string;
   role: Role;
+  designation: string;
+  monthly_salary: number;
 }
 
 /** Calls the create-staff Edge Function (owner-only, uses service role). */
@@ -57,6 +59,8 @@ export function useUpdateStaff() {
       role?: Role;
       active?: boolean;
       full_name?: string;
+      designation?: string | null;
+      monthly_salary?: number;
     }) => {
       const { id, ...rest } = input;
       const { error } = await supabase

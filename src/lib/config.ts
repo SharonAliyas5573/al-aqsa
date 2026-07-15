@@ -13,6 +13,19 @@ export const config = {
   },
 };
 
+/**
+ * Staff log in with a username, not an email. Supabase Auth needs an email, so
+ * a username `ravi` maps to the hidden internal address `ravi@alaqsa.local`.
+ * If the entered value already looks like an email (contains "@") it is used
+ * as-is — this keeps the original email-based owner account working too.
+ */
+export const USERNAME_EMAIL_DOMAIN = "alaqsa.local";
+
+export function usernameToEmail(input: string): string {
+  const v = input.trim();
+  return v.includes("@") ? v : `${v.toLowerCase()}@${USERNAME_EMAIL_DOMAIN}`;
+}
+
 /** True when the app is pointed at a real Supabase project (not placeholders). */
 export const hasSupabaseConfig =
   !!config.supabaseUrl &&

@@ -22,7 +22,7 @@ export function JobOrder({ order }: { order: OrderFull }) {
         }
       />
       <Row label="Customer" value={order.customer.name} />
-      <Row label="Tailor" value={order.tailor?.full_name ?? "Unassigned"} />
+      <Row label="Staff" value={order.tailor?.full_name ?? "Unassigned"} />
       <Divider />
       {order.items.map((it) => (
         <JobOrderItem key={it.id} item={it} />

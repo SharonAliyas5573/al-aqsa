@@ -4,7 +4,7 @@
  * `supabase gen types typescript`.
  */
 
-export type Role = "owner" | "counter" | "tailor";
+export type Role = "owner" | "staff";
 export type PaymentStatus = "paid" | "partial" | "pending";
 export type PaymentMode = "cash" | "upi";
 
@@ -32,7 +32,23 @@ export interface Profile {
   full_name: string;
   role: Role;
   active: boolean;
+  username: string | null;
+  designation: string | null;
+  monthly_salary: number;
   created_at: string;
+}
+
+/** A recorded monthly salary payment for a staff member. */
+export interface SalaryPayment {
+  id: string;
+  staff_id: string;
+  /** First day of the month, e.g. 2026-07-01. */
+  period: string;
+  amount: number;
+  mode: PaymentMode;
+  paid_at: string;
+  note: string | null;
+  created_by: string | null;
 }
 
 export interface Customer {

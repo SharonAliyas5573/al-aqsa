@@ -39,8 +39,8 @@ import { StageTracker } from "./StageTracker";
 export function OrderDetailPage() {
   const { id } = useParams();
   const { data: order, isLoading } = useOrder(id);
-  const { isTailor, can } = useRole();
-  const canBill = can(["owner", "counter"]);
+  const { isOwner } = useRole();
+  const canBill = isOwner; // payments/collections are owner-only
   const [payOpen, setPayOpen] = useState(false);
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
@@ -68,34 +68,26 @@ export function OrderDetailPage() {
         description={`${order.customer.name} · ${order.customer.phone}`}
         action={
           <div className="flex flex-wrap gap-2">
-            {/* Job order print is useful for tailors too */}
             <Button variant="outline" onClick={() => printNode("job-order")}>
               <ClipboardList /> Job Order
             </Button>
-            {!isTailor && (
-              <>
-                <Button variant="outline" onClick={() => printNode("cloth-bill")}>
-                  <Scissors /> Cloth Bill
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => printNode("stitch-bill")}
-                >
-                  <Shirt /> Stitch Bill
-                </Button>
-                <Link to={`/orders/${order.id}/edit`}>
-                  <Button variant="outline">
-                    <Pencil /> Edit
-                  </Button>
-                </Link>
-                <Button variant="outline" onClick={() => downloadInvoice(order)}>
-                  <FileDown /> A4 PDF
-                </Button>
-                <Button onClick={() => shareInvoice(order).catch(() => {})}>
-                  <Share2 /> Share
-                </Button>
-              </>
-            )}
+            <Button variant="outline" onClick={() => printNode("cloth-bill")}>
+              <Scissors /> Cloth Bill
+            </Button>
+            <Button variant="outline" onClick={() => printNode("stitch-bill")}>
+              <Shirt /> Stitch Bill
+            </Button>
+            <Link to={`/orders/${order.id}/edit`}>
+              <Button variant="outline">
+                <Pencil /> Edit
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={() => downloadInvoice(order)}>
+              <FileDown /> A4 PDF
+            </Button>
+            <Button onClick={() => shareInvoice(order).catch(() => {})}>
+              <Share2 /> Share
+            </Button>
           </div>
         }
       />
@@ -210,7 +202,7 @@ export function OrderDetailPage() {
                 }
               />
               <Meta
-                label="Assigned tailor"
+                label="Assigned staff"
                 value={order.tailor?.full_name ?? "Unassigned"}
               />
               <Meta

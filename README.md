@@ -146,13 +146,30 @@ buttons produce the combined jsPDF invoice.
 
 ## Roles
 
-| Role    | Access |
-|---------|--------|
-| Owner   | Everything incl. Collections, Inventory, Staff |
-| Counter | Customers, Orders, Payments, Inventory (no Staff/Collections) |
-| Tailor  | Only assigned orders; can advance production stage; no payments |
+| Role  | Access |
+|-------|--------|
+| Owner | Everything: Collections, Inventory, Staff, **Salary**, Garment settings, all money |
+| Staff | Customers, Orders (create/edit/print, advance stages), Measurements, Inventory. **No** payments/collections, salary, staff, or garment settings |
 
 Enforced in the UI *and* at the database with Row Level Security.
+
+Staff each have a free-text **designation** (Cutter, Tailor, Ironing…) and a
+**monthly salary**; the owner records salary payments month-by-month under
+**Salary** (with a yearly report).
+
+### Login with a username
+
+Staff log in with a **username**, not an email. Under the hood a username `ravi`
+maps to a hidden internal address `ravi@alaqsa.local` (Supabase Auth needs an
+email). If a login value already contains `@` it's used as-is, so the original
+email-based owner account keeps working. See `usernameToEmail` in
+`src/lib/config.ts`.
+
+> Migration `0006_roles_and_salary.sql` collapses the old owner/counter/tailor
+> roles to **owner/staff** (existing counter + tailor accounts become staff) and
+> adds the salary module. Redeploy the `create-staff` edge function after
+> applying it (`supabase functions deploy create-staff`) — it now takes a
+> username + designation + salary.
 
 ## Project layout
 
@@ -167,7 +184,8 @@ src/
     orders/         list + order-no search, kiosk form, detail, 9-stage tracker
     billing/        payments, collections
     inventory/      fabrics + stock + rate
-    staff/          owner-only staff management
+    staff/          owner-only staff (username, designation, salary)
+    salary/         owner-only monthly salary payments + yearly report
     print/          cloth bill · stitch bill · job order · A4 jsPDF invoice
     notify/         WhatsApp templates + mock/live client
     dashboard/      KPIs, stage summary, alerts

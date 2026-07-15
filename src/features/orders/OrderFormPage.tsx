@@ -228,7 +228,7 @@ export function OrderFormPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="o-tailor">Assign tailor (optional)</Label>
+              <Label htmlFor="o-tailor">Assign staff (optional)</Label>
               <Select
                 id="o-tailor"
                 value={tailorId}

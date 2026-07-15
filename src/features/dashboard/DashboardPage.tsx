@@ -18,7 +18,7 @@ import { useDashboard } from "./api";
 
 export function DashboardPage() {
   const { profile } = useAuth();
-  const { isOwner, isTailor, can } = useRole();
+  const { isOwner, can } = useRole();
   const { data, isLoading } = useDashboard();
 
   return (
@@ -27,7 +27,7 @@ export function DashboardPage() {
         title={`Welcome, ${profile?.full_name?.split(" ")[0] || "there"}`}
         description={config.shop.name}
         action={
-          can(["owner", "counter"]) && (
+          can(["owner", "staff"]) && (
             <div className="flex gap-2">
               <Link to="/customers">
                 <Button variant="outline">
@@ -62,23 +62,21 @@ export function DashboardPage() {
               label="Deliveries due today"
               value={String(data.deliveriesToday.length)}
             />
-            {!isTailor && (
+            {isOwner && (
               <Kpi
-                to={isOwner ? "/collections" : "/orders"}
+                to="/collections"
                 icon={Wallet}
                 label="Pending collections"
                 value={formatCurrency(data.pendingCollectionsTotal)}
               />
             )}
-            {!isTailor && (
-              <Kpi
-                to="/inventory"
-                icon={AlertTriangle}
-                label="Low-stock fabrics"
-                value={String(data.lowStock.length)}
-                warning={data.lowStock.length > 0}
-              />
-            )}
+            <Kpi
+              to="/inventory"
+              icon={AlertTriangle}
+              label="Low-stock fabrics"
+              value={String(data.lowStock.length)}
+              warning={data.lowStock.length > 0}
+            />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -147,7 +145,7 @@ export function DashboardPage() {
           </div>
 
           {/* Low stock alerts */}
-          {!isTailor && data.lowStock.length > 0 && (
+          {data.lowStock.length > 0 && (
             <Card className="border-amber-400">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-700">

@@ -9,7 +9,9 @@
 //
 // Deploy:  supabase functions deploy create-staff
 //
-// Request body: { email, password, full_name, role }
+// Request body: { username, password, full_name, role, designation, monthly_salary }
+// Staff log in with a username; we map it to a hidden internal email
+// (<username>@alaqsa.local) so Supabase Auth (which needs an email) is happy.
 // Auth: caller must be an authenticated 'owner' (verified via their JWT).
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -50,13 +52,22 @@ Deno.serve(async (req) => {
     }
 
     // 2. Validate input.
-    const { email, password, full_name, role } = await req.json();
-    if (!email || !password || !role) {
-      return json({ error: "email, password and role are required" }, 400);
+    const { username, password, full_name, role, designation, monthly_salary } =
+      await req.json();
+    if (!username || !password || !role) {
+      return json({ error: "username, password and role are required" }, 400);
     }
-    if (!["owner", "counter", "tailor"].includes(role)) {
+    if (!["owner", "staff"].includes(role)) {
       return json({ error: "Invalid role" }, 400);
     }
+    const uname = String(username).trim().toLowerCase();
+    if (!/^[a-z0-9._-]{2,}$/.test(uname)) {
+      return json(
+        { error: "Username must be 2+ chars: letters, numbers, . _ -" },
+        400,
+      );
+    }
+    const email = `${uname}@alaqsa.local`;
 
     // 3. Create the auth user (email confirmed so they can log in immediately).
     const { data: created, error: cErr } = await admin.auth.admin.createUser({
@@ -71,6 +82,9 @@ Deno.serve(async (req) => {
       id: created.user.id,
       full_name: full_name ?? "",
       role,
+      username: uname,
+      designation: designation ?? null,
+      monthly_salary: Number(monthly_salary) || 0,
       active: true,
     });
     if (pErr) {

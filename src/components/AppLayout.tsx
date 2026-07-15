@@ -7,6 +7,7 @@ import {
   Wallet,
   Package,
   UserCog,
+  Banknote,
   LogOut,
   Menu,
   Scissors,
@@ -31,19 +32,19 @@ const NAV: NavItem[] = [
     to: "/",
     label: "Dashboard",
     icon: LayoutDashboard,
-    roles: ["owner", "counter", "tailor"],
+    roles: ["owner", "staff"],
   },
   {
     to: "/orders",
     label: "Orders",
     icon: ClipboardList,
-    roles: ["owner", "counter", "tailor"],
+    roles: ["owner", "staff"],
   },
   {
     to: "/customers",
     label: "Customers",
     icon: Users,
-    roles: ["owner", "counter"],
+    roles: ["owner", "staff"],
   },
   {
     to: "/collections",
@@ -55,7 +56,7 @@ const NAV: NavItem[] = [
     to: "/inventory",
     label: "Inventory",
     icon: Package,
-    roles: ["owner", "counter"],
+    roles: ["owner", "staff"],
   },
   {
     to: "/settings/garments",
@@ -64,6 +65,7 @@ const NAV: NavItem[] = [
     roles: ["owner"],
   },
   { to: "/staff", label: "Staff", icon: UserCog, roles: ["owner"] },
+  { to: "/salary", label: "Salary", icon: Banknote, roles: ["owner"] },
 ];
 
 export function AppLayout() {

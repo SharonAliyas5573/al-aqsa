@@ -8,41 +8,30 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useRole, useAuth } from "@/features/auth/AuthProvider";
 import { ORDER_STAGES } from "@/lib/database.types";
 import { formatCurrency } from "@/lib/utils";
 import { useOrders } from "./api";
 
 export function OrdersPage() {
-  const { isTailor } = useRole();
-  const { session } = useAuth();
   const [stage, setStage] = useState<string>("");
   const [search, setSearch] = useState("");
 
   const { data: orders, isLoading } = useOrders({
     stage: stage ? Number(stage) : undefined,
     search: search || undefined,
-    // Tailors only ever see their assigned orders (RLS enforces too).
-    tailorId: isTailor ? session?.user.id : undefined,
   });
 
   return (
     <div>
       <PageHeader
-        title={isTailor ? "My Jobs" : "Orders"}
-        description={
-          isTailor
-            ? "Orders assigned to you — update production stage"
-            : "All orders across every stage"
-        }
+        title="Orders"
+        description="All orders across every stage"
         action={
-          !isTailor && (
-            <Link to="/orders/new">
-              <Button>
-                <Plus /> New Order
-              </Button>
-            </Link>
-          )
+          <Link to="/orders/new">
+            <Button>
+              <Plus /> New Order
+            </Button>
+          </Link>
         }
       />
 

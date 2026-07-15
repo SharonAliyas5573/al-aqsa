@@ -11,7 +11,7 @@ import { config } from "@/lib/config";
 export function LoginPage() {
   const { signIn, configured, session } = useAuth();
   const location = useLocation();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,7 @@ export function LoginPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const { error } = await signIn(email.trim(), password);
+    const { error } = await signIn(username.trim(), password);
     if (error) {
       setError(error);
       setBusy(false);
@@ -59,14 +59,16 @@ export function LoginPage() {
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
+                id="username"
+                type="text"
                 autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">

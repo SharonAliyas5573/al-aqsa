@@ -13,6 +13,7 @@ import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { StaffPage } from "@/features/staff/StaffPage";
 import { GarmentTypesPage } from "@/features/garments/GarmentTypesPage";
 import { GarmentTypeEditorPage } from "@/features/garments/GarmentTypeEditorPage";
+import { SalaryPage } from "@/features/salary/SalaryPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -28,7 +29,7 @@ export const router = createBrowserRouter([
       {
         path: "customers",
         element: (
-          <RequireRole roles={["owner", "counter"]}>
+          <RequireRole roles={["owner", "staff"]}>
             <CustomersPage />
           </RequireRole>
         ),
@@ -36,7 +37,7 @@ export const router = createBrowserRouter([
       {
         path: "customers/:id",
         element: (
-          <RequireRole roles={["owner", "counter"]}>
+          <RequireRole roles={["owner", "staff"]}>
             <CustomerDetailPage />
           </RequireRole>
         ),
@@ -45,7 +46,7 @@ export const router = createBrowserRouter([
       {
         path: "orders/new",
         element: (
-          <RequireRole roles={["owner", "counter"]}>
+          <RequireRole roles={["owner", "staff"]}>
             <OrderFormPage />
           </RequireRole>
         ),
@@ -53,7 +54,7 @@ export const router = createBrowserRouter([
       {
         path: "orders/:id/edit",
         element: (
-          <RequireRole roles={["owner", "counter"]}>
+          <RequireRole roles={["owner", "staff"]}>
             <OrderFormPage />
           </RequireRole>
         ),
@@ -70,7 +71,7 @@ export const router = createBrowserRouter([
       {
         path: "inventory",
         element: (
-          <RequireRole roles={["owner", "counter"]}>
+          <RequireRole roles={["owner", "staff"]}>
             <InventoryPage />
           </RequireRole>
         ),
@@ -96,6 +97,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole roles={["owner"]}>
             <StaffPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "salary",
+        element: (
+          <RequireRole roles={["owner"]}>
+            <SalaryPage />
           </RequireRole>
         ),
       },
