@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 174 84% 32%; /* teal-700 — shop brand accent */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 174 60% 94%;
+    --accent-foreground: 174 84% 22%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 174 84% 32%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    /* Prevent iOS/Android text-size auto adjust; keep tap targets predictable. */
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Disable long-press callout / text selection on chrome touch UI. */
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* Touch-first: every interactive element clears the 48px minimum. */
+  button,
+  a[role="button"],
+  [data-tap],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 48px;
+  }
+
+  /* No hover-dependent affordances: hover styles apply only where a real
+     pointer (mouse/trackpad) exists, so touch users never miss anything. */
+  @media (hover: none) {
+    .hover\:bg-accent:hover {
+      background-color: inherit;
+    }
+  }
+}
+
+/* ---- Print: reveal only the element marked .printing ----
+   The app has several 80mm thermal outputs (cloth bill, stitch bill, job
+   order). A print button adds `.printing` to the one node to print just
+   before window.print(), and removes it after. Only that node shows. */
+.print-doc {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-doc.printing,
+  .print-doc.printing * {
+    visibility: visible;
+  }
+  .print-doc.printing {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
