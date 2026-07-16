@@ -61,6 +61,8 @@ export function useUpdateStaff() {
       full_name?: string;
       designation?: string | null;
       monthly_salary?: number;
+      /** Stage numbers this staff member may set; null = all stages. */
+      allowed_stages?: number[] | null;
     }) => {
       const { id, ...rest } = input;
       const { error } = await supabase

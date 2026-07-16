@@ -8,7 +8,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { hasSupabaseConfig, usernameToEmail } from "@/lib/config";
-import type { Profile, Role } from "@/lib/database.types";
+import { canSetStage, type Profile, type Role } from "@/lib/database.types";
 
 interface AuthState {
   session: Session | null;
@@ -124,5 +124,7 @@ export function useRole() {
     isOwner: role === "owner",
     isStaff: role === "staff",
     can: (roles: Role[]) => !!role && roles.includes(role),
+    /** Mirrors the DB check — see public.can_set_stage(). */
+    canSetStage: (stage: number) => canSetStage(profile, stage),
   };
 }

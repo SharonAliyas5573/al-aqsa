@@ -34,7 +34,23 @@ export interface Profile {
   username: string | null;
   designation: string | null;
   monthly_salary: number;
+  /**
+   * Stage numbers this staff member may set on an order.
+   * null = no restriction (every stage). Owners are never restricted.
+   */
+  allowed_stages: number[] | null;
   created_at: string;
+}
+
+/** Can this profile move an order to `stage`? Mirrors public.can_set_stage(). */
+export function canSetStage(
+  profile: Pick<Profile, "role" | "allowed_stages"> | null | undefined,
+  stage: number,
+): boolean {
+  if (!profile) return false;
+  if (profile.role === "owner") return true;
+  if (profile.allowed_stages == null) return true;
+  return profile.allowed_stages.includes(stage);
 }
 
 /** A recorded monthly salary payment for a staff member. */

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, UserCog, Power, Pencil } from "lucide-react";
+import { Plus, UserCog, Power, Pencil, ListChecks } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import type { Profile, Role } from "@/lib/database.types";
+import { ORDER_STAGES, type Profile, type Role } from "@/lib/database.types";
 import {
   useStaff,
   useCreateStaff,
@@ -23,6 +23,17 @@ const ROLE_LABEL: Record<Role, string> = {
   owner: "Owner / Admin",
   staff: "Staff",
 };
+
+/** Human summary of a staff member's stage permissions for the list row. */
+function describeStages(allowed: number[] | null): string {
+  if (allowed == null) return "All";
+  if (allowed.length === 0) return "None";
+  return [...allowed]
+    .sort((a, b) => a - b)
+    .map((s) => ORDER_STAGES[s - 1])
+    .filter(Boolean)
+    .join(", ");
+}
 
 const EMPTY: CreateStaffInput = {
   username: "",
@@ -40,6 +51,7 @@ export function StaffPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CreateStaffInput>(EMPTY);
   const [editing, setEditing] = useState<Profile | null>(null);
+  const [stagesFor, setStagesFor] = useState<Profile | null>(null);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -119,8 +131,22 @@ export function StaffPage() {
                         ? ` · ${formatCurrency(s.monthly_salary)}/mo`
                         : ""}
                     </p>
+                    {!isOwnerRow && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Stages: {describeStages(s.allowed_stages)}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {!isOwnerRow && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStagesFor(s)}
+                      >
+                        <ListChecks /> Stages
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="icon"
@@ -252,6 +278,22 @@ export function StaffPage() {
         </form>
       </Dialog>
 
+      {/* Per-staff stage permissions */}
+      <StagePermissionsDialog
+        staff={stagesFor}
+        onClose={() => setStagesFor(null)}
+        onSave={async (allowed_stages) => {
+          if (!stagesFor) return;
+          try {
+            await update.mutateAsync({ id: stagesFor.id, allowed_stages });
+            toast.success("Stage permissions updated");
+            setStagesFor(null);
+          } catch (err) {
+            toast.error((err as Error).message);
+          }
+        }}
+      />
+
       {/* Edit staff (name / designation / salary) */}
       <EditStaffDialog
         staff={editing}
@@ -268,6 +310,112 @@ export function StaffPage() {
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Pick which stages a staff member may set. "All stages" stores null (no
+ * restriction) rather than every number, so staff keep working if stages are
+ * added later.
+ */
+function StagePermissionsDialog({
+  staff,
+  onClose,
+  onSave,
+}: {
+  staff: Profile | null;
+  onClose: () => void;
+  onSave: (allowed: number[] | null) => void;
+}) {
+  const [unrestricted, setUnrestricted] = useState(true);
+  const [picked, setPicked] = useState<number[]>([]);
+  const [seededFor, setSeededFor] = useState<string | null>(null);
+
+  if (staff && seededFor !== staff.id) {
+    setUnrestricted(staff.allowed_stages == null);
+    setPicked(staff.allowed_stages ?? []);
+    setSeededFor(staff.id);
+  }
+
+  function toggle(stage: number) {
+    setPicked((p) =>
+      p.includes(stage) ? p.filter((s) => s !== stage) : [...p, stage],
+    );
+  }
+
+  return (
+    <Dialog
+      open={!!staff}
+      onOpenChange={(o) => {
+        if (!o) {
+          onClose();
+          setSeededFor(null);
+        }
+      }}
+      title={`Stage permissions — ${staff?.full_name || "Staff"}`}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Choose which production stages this person can move an order to. A
+          cutter might only get “Cutting”.
+        </p>
+
+        <label className="flex items-center gap-3 rounded-md border p-3">
+          <input
+            type="checkbox"
+            className="size-5 shrink-0"
+            checked={unrestricted}
+            onChange={(e) => setUnrestricted(e.target.checked)}
+          />
+          <span className="text-sm font-medium">
+            All stages (no restriction)
+          </span>
+        </label>
+
+        {!unrestricted && (
+          <div className="space-y-1">
+            {ORDER_STAGES.map((label, i) => {
+              const stage = i + 1;
+              return (
+                <label
+                  key={label}
+                  className="flex items-center gap-3 rounded-md border p-3 active:bg-accent"
+                >
+                  <input
+                    type="checkbox"
+                    className="size-5 shrink-0"
+                    checked={picked.includes(stage)}
+                    onChange={() => toggle(stage)}
+                  />
+                  <span className="text-sm">
+                    {stage}. {label}
+                  </span>
+                </label>
+              );
+            })}
+            {picked.length === 0 && (
+              <p className="pt-1 text-xs text-amber-700">
+                No stages selected — this person won't be able to change any
+                order's stage.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() =>
+              onSave(unrestricted ? null : [...picked].sort((a, b) => a - b))
+            }
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }
 

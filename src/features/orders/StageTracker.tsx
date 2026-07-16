@@ -1,22 +1,29 @@
 import { toast } from "sonner";
-import { Check, Circle, Loader2 } from "lucide-react";
+import { Check, Circle, Loader2, Lock } from "lucide-react";
 import { ORDER_STAGES, type OrderFull } from "@/lib/database.types";
+import { useRole } from "@/features/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import { useUpdateStage } from "./api";
 
 /**
  * Vertical 8-stage tracker. Tapping the next stage advances the order (writes
- * stage history via DB trigger + fires the WhatsApp notification). Any role
- * that can see the order may advance it (owner/counter/assigned tailor).
+ * stage history via DB trigger + fires the WhatsApp notification). A staff
+ * member may only set the stages the owner granted them (Staff page); owners
+ * may set any. The same rule is enforced in the DB — see can_set_stage().
  * Stages 4 (Button Fix Given) and 5 (Button Fix Returned) mark the outsourced
  * button-hole work leaving and coming back.
  */
 export function StageTracker({ order }: { order: OrderFull }) {
   const update = useUpdateStage();
+  const { canSetStage } = useRole();
   const current = order.current_stage;
 
   async function goto(stage: number) {
     if (stage === current || update.isPending) return;
+    if (!canSetStage(stage)) {
+      toast.error(`You don't have permission to set “${ORDER_STAGES[stage - 1]}”`);
+      return;
+    }
     try {
       await update.mutateAsync({ order, stage });
       toast.success(`Moved to “${ORDER_STAGES[stage - 1]}”`);
@@ -32,16 +39,20 @@ export function StageTracker({ order }: { order: OrderFull }) {
         const done = stage < current;
         const active = stage === current;
         const isNext = stage === current + 1;
+        // The current stage is never "settable" (tapping it is a no-op), so
+        // don't mark it locked just because this user couldn't re-set it.
+        const locked = !active && !canSetStage(stage);
         return (
           <li key={label}>
             <button
               type="button"
               onClick={() => goto(stage)}
-              disabled={update.isPending}
+              disabled={update.isPending || locked}
               className={cn(
                 "flex w-full items-center gap-3 rounded-md px-3 py-3 text-left",
                 active && "bg-primary/10",
-                (isNext || (!done && !active)) && "active:bg-accent",
+                locked && "cursor-not-allowed opacity-50",
+                !locked && (isNext || (!done && !active)) && "active:bg-accent",
               )}
             >
               <span
@@ -73,10 +84,14 @@ export function StageTracker({ order }: { order: OrderFull }) {
               >
                 {label}
               </span>
-              {isNext && (
-                <span className="ml-auto text-xs font-medium text-primary">
-                  Tap to advance →
-                </span>
+              {locked ? (
+                <Lock className="ml-auto size-4 shrink-0 text-muted-foreground" />
+              ) : (
+                isNext && (
+                  <span className="ml-auto text-xs font-medium text-primary">
+                    Tap to advance →
+                  </span>
+                )
               )}
             </button>
           </li>
