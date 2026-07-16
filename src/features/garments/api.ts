@@ -154,6 +154,37 @@ export function useSaveMeasurementField() {
   });
 }
 
+/**
+ * Persist a new field order. Takes the ids in their intended order and writes
+ * each one's index back as sort_order.
+ */
+export function useReorderMeasurementFields() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      garment_type_id,
+      ids,
+    }: {
+      garment_type_id: string;
+      ids: string[];
+    }) => {
+      const results = await Promise.all(
+        ids.map((id, i) =>
+          supabase
+            .from("measurement_fields")
+            .update({ sort_order: i })
+            .eq("id", id)
+            .eq("garment_type_id", garment_type_id),
+        ),
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: (_v, { garment_type_id }) =>
+      qc.invalidateQueries({ queryKey: ["garment_type", garment_type_id] }),
+  });
+}
+
 export function useDeleteMeasurementField() {
   const qc = useQueryClient();
   return useMutation({

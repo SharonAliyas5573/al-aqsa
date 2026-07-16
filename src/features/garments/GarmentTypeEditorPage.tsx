@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { ModelCardManager } from "./ModelCardManager";
 import {
   useDeleteMeasurementField,
   useGarmentTypeFull,
+  useReorderMeasurementFields,
   useSaveGarmentType,
   useSaveMeasurementField,
 } from "./api";
@@ -44,6 +45,7 @@ export function GarmentTypeEditorPage() {
   const saveType = useSaveGarmentType();
   const saveField = useSaveMeasurementField();
   const delField = useDeleteMeasurementField();
+  const reorderFields = useReorderMeasurementFields();
 
   const [fieldLabel, setFieldLabel] = useState("");
   const [fieldType, setFieldType] = useState<MeasurementInput>("number");
@@ -73,6 +75,23 @@ export function GarmentTypeEditorPage() {
         sort_order: garment!.fields.length,
       });
       setFieldLabel("");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  /**
+   * Move a field one slot up (-1) or down (+1). Rewrites sort_order across the
+   * whole list, since rows predating reordering can share or skip values.
+   */
+  async function moveField(index: number, direction: -1 | 1) {
+    const fields = garment!.fields;
+    const target = index + direction;
+    if (target < 0 || target >= fields.length) return;
+    const ids = fields.map((f) => f.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    try {
+      await reorderFields.mutateAsync({ garment_type_id: garment!.id, ids });
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -116,6 +135,21 @@ export function GarmentTypeEditorPage() {
       />
 
       <div className="space-y-6">
+        {/* Garment-level model cards */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Garment Models</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ModelCardManager
+              garmentTypeId={garment.id}
+              fieldId={null}
+              models={garment.models}
+              title={`${garment.name} models (photo cards the customer picks from)`}
+            />
+          </CardContent>
+        </Card>
+
         {/* Measurement fields */}
         <Card>
           <CardHeader>
@@ -129,10 +163,15 @@ export function GarmentTypeEditorPage() {
               </p>
             )}
             <ul className="divide-y">
-              {garment.fields.map((f) => (
+              {garment.fields.map((f, i) => (
                 <FieldRow
                   key={f.id}
                   field={f}
+                  isFirst={i === 0}
+                  isLast={i === garment.fields.length - 1}
+                  reordering={reorderFields.isPending}
+                  onMoveUp={() => moveField(i, -1)}
+                  onMoveDown={() => moveField(i, 1)}
                   onDelete={() =>
                     delField.mutate({ id: f.id, garment_type_id: garment.id })
                   }
@@ -199,21 +238,6 @@ export function GarmentTypeEditorPage() {
           </CardContent>
         </Card>
 
-        {/* Garment-level model cards */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Garment Models</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ModelCardManager
-              garmentTypeId={garment.id}
-              fieldId={null}
-              models={garment.models}
-              title={`${garment.name} models (photo cards the customer picks from)`}
-            />
-          </CardContent>
-        </Card>
-
         {/* Per-field model cards for model-bearing fields */}
         {modelBearingFields.length > 0 && (
           <Card>
@@ -240,16 +264,45 @@ export function GarmentTypeEditorPage() {
 
 function FieldRow({
   field,
+  isFirst,
+  isLast,
+  reordering,
+  onMoveUp,
+  onMoveDown,
   onDelete,
   onToggleRequired,
 }: {
   field: MeasurementField;
+  isFirst: boolean;
+  isLast: boolean;
+  reordering: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onDelete: () => void;
   onToggleRequired: () => void;
 }) {
   return (
     <li className="flex items-center gap-3 py-3">
-      <GripVertical className="size-4 shrink-0 text-muted-foreground" />
+      <div className="flex shrink-0 flex-col">
+        <button
+          type="button"
+          aria-label={`Move ${field.label} up`}
+          onClick={onMoveUp}
+          disabled={isFirst || reordering}
+          className="flex size-8 items-center justify-center rounded text-muted-foreground active:bg-accent disabled:opacity-30"
+        >
+          <ChevronUp className="size-4" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Move ${field.label} down`}
+          onClick={onMoveDown}
+          disabled={isLast || reordering}
+          className="flex size-8 items-center justify-center rounded text-muted-foreground active:bg-accent disabled:opacity-30"
+        >
+          <ChevronDown className="size-4" />
+        </button>
+      </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">
           {field.label}

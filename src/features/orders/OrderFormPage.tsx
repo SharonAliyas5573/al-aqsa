@@ -6,12 +6,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCustomer, useCustomers } from "@/features/customers/api";
 import { CustomerFormDialog } from "@/features/customers/CustomerFormDialog";
 import { useFabrics } from "@/features/inventory/api";
-import { useTailors } from "@/features/staff/api";
 import { formatCurrency } from "@/lib/utils";
 import { OrderItemForm } from "./OrderItemForm";
 import {
@@ -46,13 +44,11 @@ export function OrderFormPage() {
   const [search, setSearch] = useState("");
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [delivery, setDelivery] = useState("");
-  const [tailorId, setTailorId] = useState("");
   const [items, setItems] = useState<OrderItemInput[]>([newItem()]);
 
   const { data: results } = useCustomers(search);
   const { data: selectedCustomer } = useCustomer(customerId || undefined);
   const { data: fabrics } = useFabrics();
-  const { data: tailors } = useTailors();
   const save = useSaveOrder();
   const { data: existing } = useOrder(id);
 
@@ -61,7 +57,6 @@ export function OrderFormPage() {
     if (existing) {
       setCustomerId(existing.customer_id);
       setDelivery(existing.expected_delivery ?? "");
-      setTailorId(existing.assigned_tailor ?? "");
       setItems(
         existing.items.map((it) => ({
           garment_type_id: it.garment_type_id,
@@ -116,7 +111,8 @@ export function OrderFormPage() {
         id,
         customer_id: customerId,
         expected_delivery: delivery || null,
-        assigned_tailor: tailorId || null,
+        // Assignment is managed outside this form; preserve whatever is set.
+        assigned_tailor: existing?.assigned_tailor ?? null,
         items: itemsWithRate,
       });
       toast.success(editing ? "Order updated" : "Order created");
@@ -217,7 +213,7 @@ export function OrderFormPage() {
           <CardHeader>
             <CardTitle>Order Details</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="o-delivery">Due date</Label>
               <Input
@@ -226,21 +222,6 @@ export function OrderFormPage() {
                 value={delivery}
                 onChange={(e) => setDelivery(e.target.value)}
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="o-tailor">Assign staff (optional)</Label>
-              <Select
-                id="o-tailor"
-                value={tailorId}
-                onChange={(e) => setTailorId(e.target.value)}
-              >
-                <option value="">Unassigned</option>
-                {tailors?.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.full_name}
-                  </option>
-                ))}
-              </Select>
             </div>
           </CardContent>
         </Card>
