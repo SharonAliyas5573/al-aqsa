@@ -70,13 +70,15 @@ export function DashboardPage() {
                 value={formatCurrency(data.pendingCollectionsTotal)}
               />
             )}
-            <Kpi
-              to="/inventory"
-              icon={AlertTriangle}
-              label="Low-stock fabrics"
-              value={String(data.lowStock.length)}
-              warning={data.lowStock.length > 0}
-            />
+            {isOwner && (
+              <Kpi
+                to="/inventory"
+                icon={AlertTriangle}
+                label="Low-stock fabrics"
+                value={String(data.lowStock.length)}
+                warning={data.lowStock.length > 0}
+              />
+            )}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -145,7 +147,7 @@ export function DashboardPage() {
           </div>
 
           {/* Low stock alerts */}
-          {data.lowStock.length > 0 && (
+          {isOwner && data.lowStock.length > 0 && (
             <Card className="border-amber-400">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-700">

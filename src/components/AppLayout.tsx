@@ -56,7 +56,7 @@ const NAV: NavItem[] = [
     to: "/inventory",
     label: "Inventory",
     icon: Package,
-    roles: ["owner", "staff"],
+    roles: ["owner"],
   },
   {
     to: "/settings/garments",

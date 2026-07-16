@@ -8,24 +8,23 @@ export type Role = "owner" | "staff";
 export type PaymentStatus = "paid" | "partial" | "pending";
 export type PaymentMode = "cash" | "upi";
 
-/** 9 production stages, in sequence. Index 0 unused; stages are 1..9. */
+/**
+ * 8 production stages, in sequence. Index 0 unused; stages are 1..8.
+ * Measurements are captured during order creation, so an order opens at
+ * "Measurement" — there is no separate intake stage.
+ */
 export const ORDER_STAGES = [
-  "Received",
   "Measurement",
   "Cutting",
   "Stitching",
   "Button Fix Given",
-  "Button Fixed",
+  "Button Fix Returned",
   "Ironing",
   "Packed",
   "Delivered",
 ] as const;
 
 export type StageName = (typeof ORDER_STAGES)[number];
-
-/** Stage numbers (1-based) that involve the outsourced button-hole work. */
-export const BUTTONHOLE_GIVEN_STAGE = 5;
-export const BUTTONHOLE_DONE_STAGE = 6;
 
 export interface Profile {
   id: string;
@@ -154,8 +153,6 @@ export interface Order {
   current_stage: number;
   total_amount: number;
   payment_status: PaymentStatus;
-  buttonhole_given: number | null;
-  buttonhole_returned: number | null;
   created_by: string | null;
   created_at: string;
 }

@@ -71,7 +71,7 @@ export const router = createBrowserRouter([
       {
         path: "inventory",
         element: (
-          <RequireRole roles={["owner", "staff"]}>
+          <RequireRole roles={["owner"]}>
             <InventoryPage />
           </RequireRole>
         ),

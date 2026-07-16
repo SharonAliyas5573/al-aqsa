@@ -116,6 +116,11 @@ export function OrderFormPage() {
         items: itemsWithRate,
       });
       toast.success(editing ? "Order updated" : "Order created");
+      if (res.measurementsSynced === false) {
+        toast.warning(
+          "Order saved, but the customer's saved measurements couldn't be updated.",
+        );
+      }
       navigate(`/orders/${res.id}`);
     } catch (err) {
       toast.error((err as Error).message);

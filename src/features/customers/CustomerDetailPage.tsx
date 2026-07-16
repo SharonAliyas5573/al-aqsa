@@ -218,8 +218,8 @@ export function CustomerDetailPage() {
                   <p className="text-sm text-muted-foreground">Loading…</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  These auto-fill new orders. Per-order changes don't overwrite
-                  this saved set.
+                  These auto-fill new orders. Measuring again on a new order
+                  updates this set to the latest numbers.
                 </p>
               </>
             )}

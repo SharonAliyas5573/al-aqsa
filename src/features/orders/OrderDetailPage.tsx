@@ -209,15 +209,6 @@ export function OrderDetailPage() {
                 label="Current stage"
                 value={`${order.current_stage}. ${ORDER_STAGES[order.current_stage - 1]}`}
               />
-              {(order.buttonhole_given != null ||
-                order.buttonhole_returned != null) && (
-                <Meta
-                  label="Button-holes (given / returned)"
-                  value={`${order.buttonhole_given ?? 0} / ${
-                    order.buttonhole_returned ?? 0
-                  }`}
-                />
-              )}
               <div className="sm:col-span-2">
                 <a
                   href={`tel:${order.customer.phone}`}

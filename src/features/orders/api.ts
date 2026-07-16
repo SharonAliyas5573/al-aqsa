@@ -116,6 +116,51 @@ export function computeOrderTotal(
   }, 0);
 }
 
+/** True when a measurement set has at least one value actually filled in. */
+function hasAnyValue(values: MeasurementValues): boolean {
+  return Object.values(values).some(
+    (v) => v?.value != null || v?.model_id != null || v?.note,
+  );
+}
+
+/**
+ * Push the measurements captured on an order back onto the customer's saved
+ * set, so the next order auto-fills the newest numbers.
+ *
+ * Note this intentionally departs from PRD §4.2 ("changes per order are saved
+ * separately without overwriting the master profile") — the shop wants the most
+ * recent measuring to become the customer's latest.
+ *
+ * Best-effort: a failure here must not fail the order that was just saved.
+ */
+async function syncCustomerMeasurements(
+  customerId: string,
+  items: OrderItemInput[],
+) {
+  // One row per (customer, garment type) — keep the last non-empty line when an
+  // order has several lines of the same garment type.
+  const latest = new Map<string, MeasurementValues>();
+  for (const it of items) {
+    if (!it.garment_type_id) continue;
+    const values = (it.measurements ?? {}) as MeasurementValues;
+    if (!hasAnyValue(values)) continue;
+    latest.set(it.garment_type_id, values);
+  }
+  if (latest.size === 0) return;
+
+  const rows = [...latest].map(([garment_type_id, values]) => ({
+    customer_id: customerId,
+    garment_type_id,
+    values,
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase
+    .from("customer_measurements")
+    .upsert(rows, { onConflict: "customer_id,garment_type_id" });
+  if (error) throw error;
+}
+
 /** Create or update an order together with its item lines. */
 export function useSaveOrder() {
   const qc = useQueryClient();
@@ -132,6 +177,8 @@ export function useSaveOrder() {
 
       if (input.id) {
         // Header only; item edits are not re-deducted from stock (Phase 1).
+        // Item measurements aren't persisted on edit either, so there is
+        // nothing to sync back to the customer from this path.
         const { error: uErr } = await supabase
           .from("orders")
           .update({
@@ -142,7 +189,7 @@ export function useSaveOrder() {
           })
           .eq("id", input.id);
         if (uErr) throw uErr;
-        return { id: input.id };
+        return { id: input.id, measurementsSynced: true };
       }
 
       const { data: order, error } = await supabase
@@ -165,13 +212,27 @@ export function useSaveOrder() {
       const { error: iErr } = await supabase.from("order_items").insert(items);
       if (iErr) throw iErr;
 
-      return { id: order.id, order: order as Order };
+      // The order is committed; don't fail it if the measurement sync doesn't
+      // land. Surface it as a warning instead.
+      let measurementsSynced = true;
+      try {
+        await syncCustomerMeasurements(input.customer_id, input.items);
+      } catch {
+        measurementsSynced = false;
+      }
+
+      return { id: order.id, order: order as Order, measurementsSynced };
     },
-    onSuccess: (res) => {
+    onSuccess: (res, input) => {
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["order", res.id] });
       qc.invalidateQueries({ queryKey: ["fabrics"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      // The saved set just changed — refresh anything showing it.
+      qc.invalidateQueries({
+        queryKey: ["customer_measurements", input.customer_id],
+      });
+      qc.invalidateQueries({ queryKey: ["customer_measurement"] });
     },
   });
 }
@@ -199,31 +260,6 @@ export function useUpdateStage() {
       qc.invalidateQueries({ queryKey: ["order", order.id] });
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
-}
-
-/** Update the outsourced button-hole given/returned counts. */
-export function useUpdateButtonhole() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      orderId,
-      given,
-      returned,
-    }: {
-      orderId: string;
-      given: number | null;
-      returned: number | null;
-    }) => {
-      const { error } = await supabase
-        .from("orders")
-        .update({ buttonhole_given: given, buttonhole_returned: returned })
-        .eq("id", orderId);
-      if (error) throw error;
-    },
-    onSuccess: (_v, { orderId }) => {
-      qc.invalidateQueries({ queryKey: ["order", orderId] });
     },
   });
 }
